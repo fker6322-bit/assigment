@@ -9,49 +9,30 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #121212;
+            background-color: #000000; /* ផ្ទៃពណ៌ខ្មៅពេលពេញអេក្រង់ */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        #slide-container {
-            width: 90vw;
-            height: 90vh;
-            background-color: #1e1e1e;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-radius: 12px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            font-size: 2rem;
-            overflow: hidden;
+            width: 100vw;
+            overflow: hidden; /* បំបាត់របារអូសចុះឡើង */
         }
         #slide-image {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain;
+            object-fit: contain; /* រក្សាទម្រង់រូបភាពកុំឲ្យខូចទ្រង់ទ្រាយ */
+            transition: opacity 0.2s ease-in-out; /* ធ្វើឲ្យការប្តូរស្លាយមានភាពរលូនបន្តិច */
         }
     </style>
 </head>
 <body>
 
-    <div id="slide-container">
-        <img id="slide-image" src="/static/slides/slide1.jpg" alt="Slide" onerror="this.style.display='none'; document.getElementById('error-msg').style.display='block';">
-        <div id="error-msg" style="display:none;">Please add slide1.jpg, slide2.jpg... to static/slides/</div>
-    </div>
+    <img id="slide-image" src="/static/slides/slide1.png" alt="Slide">
 
     <script>
         const socket = io();
         let currentSlide = 1;
-        const totalSlides = 5; // កំណត់ចំនួន Slide សរុបដែលអ្នកមាននៅទីនេះ
-
-        socket.on('connect', () => {
-            console.log('Viewer connected to server!');
-        });
+        const totalSlides = 7; // ចំនួនស្លាយសរុប ៧
 
         socket.on('change_slide', function(data) {
             if (data.direction === 'next' && currentSlide < totalSlides) {
@@ -60,11 +41,8 @@
                 currentSlide--;
             }
             
-            // ប្តូររូបភាព
-            const imgElement = document.getElementById('slide-image');
-            imgElement.style.display = 'block';
-            document.getElementById('error-msg').style.display = 'none';
-            imgElement.src = `/static/slides/slide${currentSlide}.jpg`;
+            // ប្តូររូបភាពភ្លាមៗ ទៅតាមលេខ .png
+            document.getElementById('slide-image').src = `/static/slides/slide${currentSlide}.png`;
         });
     </script>
 </body>
