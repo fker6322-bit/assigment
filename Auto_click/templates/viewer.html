@@ -9,19 +9,18 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #000000; /* ផ្ទៃពណ៌ខ្មៅពេលពេញអេក្រង់ */
+            background-color: #000000;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             width: 100vw;
-            overflow: hidden; /* បំបាត់របារអូសចុះឡើង */
+            overflow: hidden;
         }
         #slide-image {
             max-width: 100%;
             max-height: 100%;
-            object-fit: contain; /* រក្សាទម្រង់រូបភាពកុំឲ្យខូចទ្រង់ទ្រាយ */
-            transition: opacity 0.2s ease-in-out; /* ធ្វើឲ្យការប្តូរស្លាយមានភាពរលូនបន្តិច */
+            object-fit: contain;
         }
     </style>
 </head>
@@ -32,7 +31,13 @@
     <script>
         const socket = io();
         let currentSlide = 1;
-        const totalSlides = 7; // ចំនួនស្លាយសរុប ៧
+        const totalSlides = 7;
+
+        // មុខងារ Preload: ទាញរូបទាំង៧ទុកក្នុង Browser ជាមុនដើម្បីកុំឲ្យយឺតពេលប្តូរ
+        for (let i = 1; i <= totalSlides; i++) {
+            const img = new Image();
+            img.src = `/static/slides/slide${i}.png`;
+        }
 
         socket.on('change_slide', function(data) {
             if (data.direction === 'next' && currentSlide < totalSlides) {
@@ -41,7 +46,6 @@
                 currentSlide--;
             }
             
-            // ប្តូររូបភាពភ្លាមៗ ទៅតាមលេខ .png
             document.getElementById('slide-image').src = `/static/slides/slide${currentSlide}.png`;
         });
     </script>
