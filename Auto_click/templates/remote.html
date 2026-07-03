@@ -3,86 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Remote Control</title>
+    <title>Slide Remote</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #0f172a;
-            color: white;
-            font-family: 'Segoe UI', sans-serif;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             height: 100vh;
-            box-sizing: border-box;
-            justify-content: center;
+            justify-content: space-between;
+            overflow: hidden;
+            touch-action: none; /* ការពារការអូសរំកិលទំព័រ (Pull-to-refresh) លើទូរស័ព្ទ */
         }
-        .header {
+        .status-bar {
             text-align: center;
-            margin-bottom: 40px;
+            padding: 20px;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
         }
-        .controls {
+        .touch-area {
+            flex-grow: 1;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: #64748b;
+            text-align: center;
+            padding: 20px;
+        }
+        .button-container {
+            display: flex;
+            height: 35vh; /* ប៊ូតុងធំៗខាងក្រោម */
         }
         button {
-            background-color: #3b82f6;
-            color: white;
+            flex: 1;
             border: none;
-            border-radius: 16px;
-            padding: 30px;
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: white;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            transition: background-color 0.2s;
-            text-transform: uppercase;
-        }
-        button:active {
-            background-color: #2563eb;
-            transform: scale(0.98);
+            transition: background 0.1s;
         }
         .btn-prev {
-            background-color: #475569;
-        }
-        .btn-prev:active {
             background-color: #334155;
+            border-right: 1px solid #1e293b;
         }
+        .btn-prev:active { background-color: #475569; }
+        
+        .btn-next {
+            background-color: #2563eb;
+        }
+        .btn-next:active { background-color: #3b82f6; }
+        
+        #status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ef4444; /* ក្រហមពេលដាច់ខ្សែ */
+            margin-right: 8px;
+        }
+        .connected #status-dot { background-color: #22c55e; /* បៃតងពេលភ្ជាប់ជាប់ */ }
     </style>
 </head>
-<body>
+<body id="swipe-zone">
 
-    <div class="header">
-        <h1>Presentation Remote</h1>
-        <p>Status: <span id="status" style="color: #4ade80;">Connecting...</span></p>
+    <div class="status-bar" id="status-bar">
+        <span id="status-dot"></span><span id="status-text">Connecting...</span>
     </div>
 
-    <div class="controls">
-        <button class="btn-prev" onclick="sendPrev()">Previous Slide</button>
-        <button class="btn-next" onclick="sendNext()">Next Slide</button>
+    <div class="touch-area">
+        អូសឆ្វេងឬស្តាំ <br> (Swipe Left / Right)<br>នៅលើផ្ទៃនេះ
+    </div>
+
+    <div class="button-container">
+        <button class="btn-prev" onclick="sendPrev()">&#10094; PREV</button>
+        <button class="btn-next" onclick="sendNext()">NEXT &#10095;</button>
     </div>
 
     <script>
         const socket = io();
 
+        // គ្រប់គ្រងស្ថានភាពនៃការភ្ជាប់
         socket.on('connect', () => {
-            document.getElementById('status').innerText = 'Connected';
-            document.getElementById('status').style.color = '#4ade80';
+            document.getElementById('status-bar').classList.add('connected');
+            document.getElementById('status-text').innerText = 'Remote Ready';
         });
 
         socket.on('disconnect', () => {
-            document.getElementById('status').innerText = 'Disconnected';
-            document.getElementById('status').style.color = '#f87171';
+            document.getElementById('status-bar').classList.remove('connected');
+            document.getElementById('status-text').innerText = 'Disconnected';
         });
 
-        function sendNext() {
-            socket.emit('next_slide');
-        }
+        // មុខងារបញ្ជូនសញ្ញា
+        function sendNext() { socket.emit('next_slide'); }
+        function sendPrev() { socket.emit('prev_slide'); }
 
-        function sendPrev() {
-            socket.emit('prev_slide');
+        // មុខងារអូស (Swipe Logic) សម្រាប់ទូរស័ព្ទ
+        let touchstartX = 0;
+        let touchendX = 0;
+        const swipeZone = document.getElementById('swipe-zone');
+
+        swipeZone.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, false);
+
+        swipeZone.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            const minSwipeDistance = 50; // កំណត់ចម្ងាយនៃការអូស
+            if (touchendX < touchstartX - minSwipeDistance) {
+                sendNext(); // អូសទៅឆ្វេង = Next
+            }
+            if (touchendX > touchstartX + minSwipeDistance) {
+                sendPrev(); // អូសទៅស្តាំ = Prev
+            }
         }
     </script>
 </body>
