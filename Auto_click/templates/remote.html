@@ -15,70 +15,67 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
-            justify-content: space-between;
             overflow: hidden;
-            touch-action: none; /* ការពារការអូសរំកិលទំព័រ (Pull-to-refresh) លើទូរស័ព្ទ */
+            touch-action: none;
         }
         .status-bar {
             text-align: center;
-            padding: 20px;
-            font-size: 1.2rem;
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
+            padding: 15px;
+            font-size: 1rem;
+            background: #1e293b;
+            font-weight: bold;
         }
-        .touch-area {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.5rem;
-            color: #64748b;
-            text-align: center;
-            padding: 20px;
-        }
-        .button-container {
-            display: flex;
-            height: 35vh; /* ប៊ូតុងធំៗខាងក្រោម */
-        }
-        button {
-            flex: 1;
-            border: none;
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: background 0.1s;
-        }
-        .btn-prev {
-            background-color: #334155;
-            border-right: 1px solid #1e293b;
-        }
-        .btn-prev:active { background-color: #475569; }
-        
-        .btn-next {
-            background-color: #2563eb;
-        }
-        .btn-next:active { background-color: #3b82f6; }
-        
         #status-dot {
             display: inline-block;
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background-color: #ef4444; /* ក្រហមពេលដាច់ខ្សែ */
+            background-color: #ef4444;
             margin-right: 8px;
         }
-        .connected #status-dot { background-color: #22c55e; /* បៃតងពេលភ្ជាប់ជាប់ */ }
+        .connected #status-dot { background-color: #22c55e; }
+        
+        .preview-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            background-color: #000000;
+        }
+        #remote-slide-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        
+        .button-container {
+            display: flex;
+            height: 25vh; /* កម្ពស់ប៊ូតុងខាងក្រោម */
+        }
+        button {
+            flex: 1;
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+        }
+        .btn-prev { background-color: #334155; border-right: 1px solid #1e293b; }
+        .btn-prev:active { background-color: #475569; }
+        .btn-next { background-color: #2563eb; }
+        .btn-next:active { background-color: #3b82f6; }
     </style>
 </head>
-<body id="swipe-zone">
+<body>
 
     <div class="status-bar" id="status-bar">
         <span id="status-dot"></span><span id="status-text">Connecting...</span>
     </div>
 
-    <div class="touch-area">
-        អូសឆ្វេងឬស្តាំ <br> (Swipe Left / Right)<br>នៅលើផ្ទៃនេះ
+    <div class="preview-container" id="swipe-zone">
+        <img id="remote-slide-image" src="/static/slides/slide1.png" alt="Slide Preview">
     </div>
 
     <div class="button-container">
@@ -88,8 +85,15 @@
 
     <script>
         const socket = io();
+        let currentSlide = 1;
+        const totalSlides = 7;
 
-        // គ្រប់គ្រងស្ថានភាពនៃការភ្ជាប់
+        // មុខងារ Preload សម្រាប់ទូរស័ព្ទ
+        for (let i = 1; i <= totalSlides; i++) {
+            const img = new Image();
+            img.src = `/static/slides/slide${i}.png`;
+        }
+
         socket.on('connect', () => {
             document.getElementById('status-bar').classList.add('connected');
             document.getElementById('status-text').innerText = 'Remote Ready';
@@ -100,11 +104,20 @@
             document.getElementById('status-text').innerText = 'Disconnected';
         });
 
-        // មុខងារបញ្ជូនសញ្ញា
+        // ពេលមានសញ្ញាប្តូរស្លាយ ឲ្យទូរស័ព្ទប្តូររូបដែរ
+        socket.on('change_slide', function(data) {
+            if (data.direction === 'next' && currentSlide < totalSlides) {
+                currentSlide++;
+            } else if (data.direction === 'prev' && currentSlide > 1) {
+                currentSlide--;
+            }
+            document.getElementById('remote-slide-image').src = `/static/slides/slide${currentSlide}.png`;
+        });
+
         function sendNext() { socket.emit('next_slide'); }
         function sendPrev() { socket.emit('prev_slide'); }
 
-        // មុខងារអូស (Swipe Logic) សម្រាប់ទូរស័ព្ទ
+        // មុខងារអូស (Swipe Logic) លើរូបភាព
         let touchstartX = 0;
         let touchendX = 0;
         const swipeZone = document.getElementById('swipe-zone');
@@ -119,13 +132,9 @@
         }, false);
 
         function handleSwipe() {
-            const minSwipeDistance = 50; // កំណត់ចម្ងាយនៃការអូស
-            if (touchendX < touchstartX - minSwipeDistance) {
-                sendNext(); // អូសទៅឆ្វេង = Next
-            }
-            if (touchendX > touchstartX + minSwipeDistance) {
-                sendPrev(); // អូសទៅស្តាំ = Prev
-            }
+            const minSwipeDistance = 50; 
+            if (touchendX < touchstartX - minSwipeDistance) sendNext();
+            if (touchendX > touchstartX + minSwipeDistance) sendPrev();
         }
     </script>
 </body>
