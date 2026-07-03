@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #slide-container {
+            width: 90vw;
+            height: 90vh;
+            background-color: #1e1e1e;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 2rem;
+            overflow: hidden;
+        }
+        #slide-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="slide-container">
+        <img id="slide-image" src="/static/slides/slide1.jpg" alt="Slide" onerror="this.style.display='none'; document.getElementById('error-msg').style.display='block';">
+        <div id="error-msg" style="display:none;">Please add slide1.jpg, slide2.jpg... to static/slides/</div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentSlide = 1;
+        const totalSlides = 5; // កំណត់ចំនួន Slide សរុបដែលអ្នកមាននៅទីនេះ
+
+        socket.on('connect', () => {
+            console.log('Viewer connected to server!');
+        });
+
+        socket.on('change_slide', function(data) {
+            if (data.direction === 'next' && currentSlide < totalSlides) {
+                currentSlide++;
+            } else if (data.direction === 'prev' && currentSlide > 1) {
+                currentSlide--;
+            }
+            
+            // ប្តូររូបភាព
+            const imgElement = document.getElementById('slide-image');
+            imgElement.style.display = 'block';
+            document.getElementById('error-msg').style.display = 'none';
+            imgElement.src = `/static/slides/slide${currentSlide}.jpg`;
+        });
+    </script>
+</body>
+</html>
